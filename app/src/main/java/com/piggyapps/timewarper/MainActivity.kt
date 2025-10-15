@@ -24,6 +24,7 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
@@ -38,9 +39,9 @@ import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     private val displayedTimeMillis = MutableStateFlow(System.currentTimeMillis())
-    private var lastRealtimeWhenPaused: Long = SystemClock.elapsedRealtime()
-    private var timeWarpFactor: Float = 2F
-    private var isPaused: Boolean = false
+    private var lastRealtimeWhenPaused = SystemClock.elapsedRealtime()
+    private var timeWarpFactor = 2F
+    private var isPaused = false
 
     override fun onResume() {
         super.onResume()
@@ -81,8 +82,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TimeWarperTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     val currentDisplayedTime by displayedTimeMillis.collectAsState()
                     var showDialog by remember { mutableStateOf(false) }
@@ -106,8 +106,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     while (true) {
                         delay(10L)
-                        if (!isPaused)
-                            updateDisplayedTime()
+                        if (!isPaused) updateDisplayedTime()
                     }
                 }
             }
@@ -122,17 +121,13 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CurrentTimeDisplay(
-    modifier: Modifier = Modifier,
-    displayedTimeMillis: Long,
-    onLongPress: () -> Unit = {}
+    modifier: Modifier = Modifier, displayedTimeMillis: Long, onLongPress: () -> Unit = {}
 ) {
     var currentTime by remember { mutableStateOf("") }
 
     LaunchedEffect(displayedTimeMillis) {
         val fakedTime = LocalDateTime.ofEpochSecond(
-            displayedTimeMillis / 1000,
-            0,
-            java.time.ZoneOffset.ofHours(2)
+            displayedTimeMillis / 1000, 0, java.time.ZoneOffset.ofHours(2)
         )
         currentTime = fakedTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
     }
@@ -144,13 +139,11 @@ fun CurrentTimeDisplay(
                 detectTapGestures(
                     onLongPress = {
                         onLongPress()
-                    }
-                )
+                    })
             }, contentAlignment = Alignment.Center
     ) {
         Text(
-            text = currentTime,
-            style = MaterialTheme.typography.headlineLarge.copy(
+            text = currentTime, style = MaterialTheme.typography.headlineLarge.copy(
                 fontSize = 60.sp,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
@@ -170,11 +163,11 @@ fun TimeWarpFactorDialog(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Set Time Warp Factor") },
+            title = { Text("Time warp") },
             text = {
                 Column(horizontalAlignment = Alignment.Start) {
                     Text(
-                        text = "Max factor: x${"%.1f".format(currentTimeWarpFactor)}",
+                        text = "x${"%.1f".format(currentTimeWarpFactor)}",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontSize = 10.sp,
                             fontFamily = FontFamily.Monospace,
@@ -183,11 +176,9 @@ fun TimeWarpFactorDialog(
                         ),
                     )
                     Slider(
-                        value = currentTimeWarpFactor,
-                        onValueChange = { sliderValue ->
+                        value = currentTimeWarpFactor, onValueChange = { sliderValue ->
                             onTimeWarpFactorChange(sliderValue)
-                        },
-                        valueRange = 1f..10f
+                        }, valueRange = 1f..10f
                     )
                 }
             },
@@ -196,30 +187,6 @@ fun TimeWarpFactorDialog(
                     Text("OK")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    onDismiss()
-                }) {
-                    Text("Reset")
-                }
-            }
         )
     }
 }
-
-
-//private fun mapSliderToWarp(sliderValue: Float): Float {
-//    return if (sliderValue <= 0.5f) {
-//        0.1f + (sliderValue * 2 * 0.9f)
-//    } else {
-//        1f + ((sliderValue - 0.5f) * 2 * 9f)
-//    }
-//}
-//
-//private fun mapWarpToSlider(warpValue: Float): Float {
-//    return if (warpValue <= 1f) {
-//        (warpValue - 0.1f) / 0.9f / 2f
-//    } else {
-//        0.5f + ((warpValue - 1f) / 9f / 2f)
-//    }
-//}
