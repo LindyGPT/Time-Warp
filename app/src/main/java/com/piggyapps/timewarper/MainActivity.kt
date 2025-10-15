@@ -21,6 +21,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import android.os.SystemClock
+import android.widget.Toast
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
@@ -38,18 +39,32 @@ import kotlin.random.Random
 class MainActivity : ComponentActivity() {
     private val displayedTimeMillis = MutableStateFlow(System.currentTimeMillis())
     private var lastRealtimeWhenPaused: Long = SystemClock.elapsedRealtime()
-    private var timeWarpUpperFactor: Float = 4F
-    private var timeWarpMinFactor: Float = .25F
+    private var timeWarpFactor: Float = 2F
     private var isPaused: Boolean = false
 
     override fun onResume() {
         super.onResume()
         isPaused = false
         val realtimeElapsedDuringPause = SystemClock.elapsedRealtime() - lastRealtimeWhenPaused
-        val timeWarpFactor =
-            Random.nextFloat() * (timeWarpUpperFactor - timeWarpMinFactor) + timeWarpMinFactor
+        val timeWarpFactor = getCurrentTimeWarpFactor()
         val timeToAdd = (realtimeElapsedDuringPause * timeWarpFactor).toLong()
         displayedTimeMillis.value += timeToAdd
+    }
+
+    private fun getCurrentTimeWarpFactor(): Float {
+        val deadZone = 1.5
+        var randomFactor: Float
+
+        val rangeIsInsideDeadZone = timeWarpFactor <= deadZone
+        if (rangeIsInsideDeadZone) {
+            randomFactor = Random.nextFloat() * (timeWarpFactor - 1f) + 1f
+        } else {
+            do {
+                randomFactor = Random.nextFloat() * (timeWarpFactor - 1f) + 1f
+            } while (randomFactor < deadZone)
+        }
+
+        return if (Random.nextBoolean()) randomFactor else 1 / randomFactor
     }
 
     override fun onPause() {
@@ -81,10 +96,8 @@ class MainActivity : ComponentActivity() {
                     TimeWarpFactorDialog(
                         showDialog = showDialog,
                         onDismiss = { showDialog = false },
-                        currentTimeWarpUpperFactor = timeWarpUpperFactor,
-                        onTimeWarpUpperFactorChange = { timeWarpUpperFactor = it },
-                        currentTimeWarpMinFactor = timeWarpMinFactor,
-                        onTimeWarpMinFactorChange = { timeWarpMinFactor = it },
+                        currentTimeWarpFactor = timeWarpFactor,
+                        onTimeWarpFactorChange = { timeWarpFactor = it },
                     )
                 }
 
@@ -151,10 +164,8 @@ fun CurrentTimeDisplay(
 fun TimeWarpFactorDialog(
     showDialog: Boolean,
     onDismiss: () -> Unit,
-    currentTimeWarpUpperFactor: Float,
-    onTimeWarpUpperFactorChange: (Float) -> Unit,
-    currentTimeWarpMinFactor: Float,
-    onTimeWarpMinFactorChange: (Float) -> Unit,
+    currentTimeWarpFactor: Float,
+    onTimeWarpFactorChange: (Float) -> Unit,
 ) {
     if (showDialog) {
         AlertDialog(
@@ -163,7 +174,7 @@ fun TimeWarpFactorDialog(
             text = {
                 Column(horizontalAlignment = Alignment.Start) {
                     Text(
-                        text = "Max factor: x${"%.1f".format(currentTimeWarpUpperFactor)}",
+                        text = "Max factor: x${"%.1f".format(currentTimeWarpFactor)}",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontSize = 10.sp,
                             fontFamily = FontFamily.Monospace,
@@ -172,28 +183,11 @@ fun TimeWarpFactorDialog(
                         ),
                     )
                     Slider(
-                        value = mapWarpToSlider(currentTimeWarpUpperFactor),
+                        value = currentTimeWarpFactor,
                         onValueChange = { sliderValue ->
-                            onTimeWarpUpperFactorChange(mapSliderToWarp(sliderValue))
+                            onTimeWarpFactorChange(sliderValue)
                         },
-                        valueRange = 0f..1f
-                    )
-
-                    Text(
-                        text = "Min factor: x${"%.2f".format(currentTimeWarpMinFactor)}",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        ),
-                    )
-                    Slider(
-                        value = mapWarpToSlider(currentTimeWarpMinFactor),
-                        onValueChange = { sliderValue ->
-                            onTimeWarpMinFactorChange(mapSliderToWarp(sliderValue))
-                        },
-                        valueRange = 0f..1f
+                        valueRange = 1f..10f
                     )
                 }
             },
@@ -214,18 +208,18 @@ fun TimeWarpFactorDialog(
 }
 
 
-private fun mapSliderToWarp(sliderValue: Float): Float {
-    return if (sliderValue <= 0.5f) {
-        0.1f + (sliderValue * 2 * 0.9f)
-    } else {
-        1f + ((sliderValue - 0.5f) * 2 * 9f)
-    }
-}
-
-private fun mapWarpToSlider(warpValue: Float): Float {
-    return if (warpValue <= 1f) {
-        (warpValue - 0.1f) / 0.9f / 2f
-    } else {
-        0.5f + ((warpValue - 1f) / 9f / 2f)
-    }
-}
+//private fun mapSliderToWarp(sliderValue: Float): Float {
+//    return if (sliderValue <= 0.5f) {
+//        0.1f + (sliderValue * 2 * 0.9f)
+//    } else {
+//        1f + ((sliderValue - 0.5f) * 2 * 9f)
+//    }
+//}
+//
+//private fun mapWarpToSlider(warpValue: Float): Float {
+//    return if (warpValue <= 1f) {
+//        (warpValue - 0.1f) / 0.9f / 2f
+//    } else {
+//        0.5f + ((warpValue - 1f) / 9f / 2f)
+//    }
+//}
