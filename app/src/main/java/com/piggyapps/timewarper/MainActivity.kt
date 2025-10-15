@@ -21,26 +21,35 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import android.os.SystemClock
-import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.random.Random
 
+private val millisecondsWhenFirstLaunched = System.currentTimeMillis()
+
 class MainActivity : ComponentActivity() {
     private val displayedTimeMillis = MutableStateFlow(System.currentTimeMillis())
     private var lastRealtimeWhenPaused = SystemClock.elapsedRealtime()
-    private var timeWarpFactor = 2F
+    private var timeWarpFactor = 5F
     private var isPaused = false
 
     override fun onResume() {
@@ -77,8 +86,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
-
         setContent {
             TimeWarperTheme {
                 Surface(
@@ -92,7 +99,6 @@ class MainActivity : ComponentActivity() {
                         onLongPress = { showDialog = true },
                     )
 
-
                     TimeWarpFactorDialog(
                         showDialog = showDialog,
                         onDismiss = { showDialog = false },
@@ -101,27 +107,21 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-
-
                 LaunchedEffect(Unit) {
                     while (true) {
                         delay(10L)
-                        if (!isPaused) updateDisplayedTime()
+                        if (!isPaused)
+                            displayedTimeMillis.value += 10L
                     }
                 }
             }
         }
     }
-
-
-    private fun updateDisplayedTime() {
-        displayedTimeMillis.value += 10L;
-    }
 }
 
 @Composable
 fun CurrentTimeDisplay(
-    modifier: Modifier = Modifier, displayedTimeMillis: Long, onLongPress: () -> Unit = {}
+    displayedTimeMillis: Long, onLongPress: () -> Unit = {}
 ) {
     var currentTime by remember { mutableStateOf("") }
 
@@ -133,7 +133,7 @@ fun CurrentTimeDisplay(
     }
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -142,14 +142,21 @@ fun CurrentTimeDisplay(
                     })
             }, contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = currentTime, style = MaterialTheme.typography.headlineLarge.copy(
-                fontSize = 60.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = currentTime, style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 60.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             )
-        )
+            RealTimeDots()
+        }
+
     }
 }
 
@@ -188,5 +195,40 @@ fun TimeWarpFactorDialog(
                 }
             },
         )
+    }
+}
+
+@Composable
+fun RealTimeDots() {
+    var filledDots by remember { mutableIntStateOf(0) }
+    val totalDots = 12
+
+    LaunchedEffect(Unit) {
+        while (filledDots < totalDots) {
+            val timePassed = System.currentTimeMillis() - millisecondsWhenFirstLaunched
+            delay(100L)
+            filledDots = ((timePassed / (15 * 60 * 1000)) % (totalDots + 1)).toInt()
+        }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        repeat(totalDots) { index ->
+            val filled = index < filledDots
+            Box(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(
+                        color = if (filled)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+            )
+        }
     }
 }
