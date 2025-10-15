@@ -3,7 +3,6 @@ package com.piggyapps.timewarper
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -39,8 +38,8 @@ import kotlin.random.Random
 class MainActivity : ComponentActivity() {
     private val displayedTimeMillis = MutableStateFlow(System.currentTimeMillis())
     private var lastRealtimeWhenPaused: Long = SystemClock.elapsedRealtime()
-    private var timeWarpUpperFactor: Float = 2.5F
-    private var timeWarpMinFactor: Float = 0.4F
+    private var timeWarpUpperFactor: Float = 4F
+    private var timeWarpMinFactor: Float = .25F
     private var isPaused: Boolean = false
 
     override fun onResume() {
@@ -136,17 +135,15 @@ fun CurrentTimeDisplay(
                 )
             }, contentAlignment = Alignment.Center
     ) {
-        Crossfade(targetState = currentTime, label = "time_animation") {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 60.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+        Text(
+            text = currentTime,
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontSize = 60.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
-        }
+        )
     }
 }
 
