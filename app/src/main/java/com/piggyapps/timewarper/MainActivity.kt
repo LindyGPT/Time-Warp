@@ -49,33 +49,17 @@ private val millisecondsWhenFirstLaunched = System.currentTimeMillis()
 class MainActivity : ComponentActivity() {
     private val displayedTimeMillis = MutableStateFlow(System.currentTimeMillis())
     private var lastRealtimeWhenPaused = SystemClock.elapsedRealtime()
-    private var timeWarpFactor = 5F
+    private var timeWarpFactor = 2F
     private var isPaused = false
 
     override fun onResume() {
         super.onResume()
         isPaused = false
         val realtimeElapsedDuringPause = SystemClock.elapsedRealtime() - lastRealtimeWhenPaused
-        val timeWarpFactor = getCurrentTimeWarpFactor()
         val timeToAdd = (realtimeElapsedDuringPause * timeWarpFactor).toLong()
         displayedTimeMillis.value += timeToAdd
     }
 
-    private fun getCurrentTimeWarpFactor(): Float {
-        val deadZone = 1.5
-        var randomFactor: Float
-
-        val rangeIsInsideDeadZone = timeWarpFactor <= deadZone
-        if (rangeIsInsideDeadZone) {
-            randomFactor = Random.nextFloat() * (timeWarpFactor - 1f) + 1f
-        } else {
-            do {
-                randomFactor = Random.nextFloat() * (timeWarpFactor - 1f) + 1f
-            } while (randomFactor < deadZone)
-        }
-
-        return if (Random.nextBoolean()) randomFactor else 1 / randomFactor
-    }
 
     override fun onPause() {
         super.onPause()
@@ -109,9 +93,9 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     while (true) {
-                        delay(10L)
+                        delay(100L)
                         if (!isPaused)
-                            displayedTimeMillis.value += 10L
+                            displayedTimeMillis.value += (100L * timeWarpFactor).toLong()
                     }
                 }
             }
@@ -129,7 +113,7 @@ fun CurrentTimeDisplay(
         val fakedTime = LocalDateTime.ofEpochSecond(
             displayedTimeMillis / 1000, 0, java.time.ZoneOffset.ofHours(2)
         )
-        currentTime = fakedTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+        currentTime = fakedTime.format(DateTimeFormatter.ofPattern("HH:mm"))
     }
 
     Box(
@@ -170,9 +154,8 @@ fun TimeWarpFactorDialog(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Time warp") },
             text = {
-                Column(horizontalAlignment = Alignment.Start) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "x${"%.1f".format(currentTimeWarpFactor)}",
                         style = MaterialTheme.typography.headlineLarge.copy(
@@ -183,9 +166,11 @@ fun TimeWarpFactorDialog(
                         ),
                     )
                     Slider(
-                        value = currentTimeWarpFactor, onValueChange = { sliderValue ->
-                            onTimeWarpFactorChange(sliderValue)
-                        }, valueRange = 1f..10f
+                        value = mapWarpToSlider(currentTimeWarpFactor),
+                        onValueChange = { sliderValue ->
+                            onTimeWarpFactorChange(mapSliderToWarp(sliderValue))
+                        },
+                        valueRange = 0f..1f
                     )
                 }
             },
@@ -195,6 +180,22 @@ fun TimeWarpFactorDialog(
                 }
             },
         )
+    }
+}
+
+private fun mapSliderToWarp(sliderValue: Float): Float {
+    return if (sliderValue <= 0.5f) {
+        0.1f + (sliderValue * 2 * 0.9f)
+    } else {
+        1f + ((sliderValue - 0.5f) * 2 * 49f)
+    }
+}
+
+private fun mapWarpToSlider(warpValue: Float): Float {
+    return if (warpValue <= 1f) {
+        (warpValue - 0.1f) / 0.9f / 2f
+    } else {
+        0.5f + ((warpValue - 1f) / 49f / 2f)
     }
 }
 
