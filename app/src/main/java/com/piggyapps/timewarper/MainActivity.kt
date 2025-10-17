@@ -187,7 +187,7 @@ private fun mapSliderToWarp(sliderValue: Float): Float {
     return if (sliderValue <= 0.5f) {
         0.1f + (sliderValue * 2 * 0.9f)
     } else {
-        1f + ((sliderValue - 0.5f) * 2 * 49f)
+        1f + ((sliderValue - 0.5f) * 2 * 9f)
     }
 }
 
@@ -195,7 +195,7 @@ private fun mapWarpToSlider(warpValue: Float): Float {
     return if (warpValue <= 1f) {
         (warpValue - 0.1f) / 0.9f / 2f
     } else {
-        0.5f + ((warpValue - 1f) / 49f / 2f)
+        0.5f + ((warpValue - 1f) / 9f / 2f)
     }
 }
 
